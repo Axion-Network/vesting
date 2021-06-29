@@ -31,10 +31,7 @@ describe('Vester', async () => {
   let utilityContracts: UtilityContracts;
 
   beforeEach(async () => {
-    const [
-      _setter,
-      _staker,
-    ] = await ethers.getSigners();
+    const [_setter, _staker] = await ethers.getSigners();
     setter = _setter;
     staker = _staker;
 
@@ -42,7 +39,7 @@ describe('Vester', async () => {
       setter,
       bank: setter,
     });
-    
+
     airdropperContracts = await initAirdropperContracts({
       setter,
     });
@@ -112,7 +109,7 @@ describe('Vester', async () => {
         _amount: [ethers.utils.parseEther('100')], // 111111372
         _percentInitialAmount: [50],
         _percentAmountPerWithdraw: [10],
-        _percentBonus: [0]
+        _percentBonus: [0],
       });
       await expect(airdropperContracts.vesting.connect(staker).withdraw(name)).to.be.revertedWith(
         'Has not begun yet'
@@ -150,7 +147,7 @@ describe('Vester', async () => {
         _amount: [ethers.utils.parseEther('100')], // 111111372
         _percentInitialAmount: [50],
         _percentAmountPerWithdraw: [10],
-        _percentBonus: [0]
+        _percentBonus: [0],
       });
 
       await expect(airdropperContracts.vesting.connect(staker).bonus(name)).to.be.revertedWith(
@@ -219,7 +216,7 @@ describe('Vester', async () => {
         _amount: [ethers.utils.parseEther('100')], // 111111372
         _percentInitialAmount: [50],
         _percentAmountPerWithdraw: [10],
-        _percentBonus: [0]
+        _percentBonus: [0],
       });
       await airdropperContracts.vesting.connect(setter).addMultipleVesters({
         _name: [name2],
@@ -227,7 +224,7 @@ describe('Vester', async () => {
         _amount: [ethers.utils.parseEther('100')], // 111111372
         _percentInitialAmount: [50],
         _percentAmountPerWithdraw: [10],
-        _percentBonus: [0]
+        _percentBonus: [0],
       });
       await airdropperContracts.vesting.connect(setter).addMultipleVesters({
         _name: [name3],
@@ -235,7 +232,7 @@ describe('Vester', async () => {
         _amount: [ethers.utils.parseEther('100')], // 111111372
         _percentInitialAmount: [50],
         _percentAmountPerWithdraw: [10],
-        _percentBonus: [0]
+        _percentBonus: [0],
       });
     });
 
@@ -259,6 +256,7 @@ describe('Vester', async () => {
   describe('signing vester', () => {
     const name = 'Vesting Of the day';
     beforeEach(async () => {
+      await TestUtil.resetBlockTimestamp();
       const startTime = Math.ceil(new Date().getTime() / 1000);
 
       await utilityContracts.swaptoken
@@ -297,9 +295,9 @@ describe('Vester', async () => {
           '20',
           ethers.utils.parseEther('100')
         );
-        
+
       const _record1 = await airdropperContracts.vesting.records(staker.address, name);
-      expect(_record1.totalWithdrawn.toString()).to.be.not.equal('0');
+      expect(_record1.totalWithdrawn.toString()).to.be.equal('0');
 
       await expect(airdropperContracts.vesting.connect(staker).withdraw(name)).to.be.revertedWith(
         'Has not begun yet'
@@ -351,9 +349,10 @@ describe('Vester', async () => {
       TestUtil.increaseTime(DAY * 1);
 
       const _record = await airdropperContracts.vesting.records(staker.address, name);
-      expect(_record.totalWithdrawn.toString()).to.not.equal('0');
+      expect(_record.totalWithdrawn.toString()).to.equal('0');
     });
   });
+
   describe('edge cases', async () => {
     it('should not create an item that already exists', async () => {
       const name = 'test-name';
