@@ -1,0 +1,33 @@
+node_modules
+build
+coverage.json
+package-lock.json
+dist
+.vscode
+.DS_Store
+yarn-error.log
+
+coverage
+
+# Webstorm config
+.idea
+
+.notes
+
+# .env
+.env
+venv/
+
+#Coverages
+coverage.json
+coverage
+
+#Hardhat files
+cache
+artifacts
+
+#Typechain
+typechain
+types
+
+unknown-31337.json
