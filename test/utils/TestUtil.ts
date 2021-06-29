@@ -29,10 +29,6 @@ export class TestUtil {
     await ethers.provider.send('evm_mine', []);
   }
 
-  static async revertTime() {
-    await ethers.provider.send('evm_revert', [Math.floor(new Date().getTime() / 1000)]);
-  }
-
   static async resetBlockTimestamp() {
     const blockNumber = ethers.provider.getBlockNumber();
     const block = await ethers.provider.getBlock(blockNumber);
