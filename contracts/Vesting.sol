@@ -8,10 +8,17 @@ import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import './abstracts/Manageable.sol';
 import './abstracts/Migrateable.sol';
 
-import "hardhat/console.sol";
-
 contract Vesting is AccessControlUpgradeable, Manageable, Migrateable {
     event ItemCreated(address indexed token, uint256 amount);
+
+    struct AddMultipleVesters {
+        string[] _name;
+        address[] _vester;
+        uint104[] _amount;
+        uint8[] _percentInitialAmount;
+        uint8[] _percentAmountPerWithdraw;
+        uint8[] _percentBonus;
+    }
 
     struct Vested {
         // 1 words?
@@ -99,22 +106,15 @@ contract Vesting is AccessControlUpgradeable, Manageable, Migrateable {
         });
     }
 
-    function addMultipleVesters(
-        string[] calldata _name,
-        address[] calldata _vester,
-        uint104[] calldata _amount,
-        uint8[] calldata _percentInitialAmount,
-        uint8[] calldata _percentAmountPerWithdraw,
-        uint8[] calldata _percentBonus
-    ) external onlyManager {
-        for (uint256 i = 0; i < _name.length; i++) {
+    function addMultipleVesters(AddMultipleVesters calldata vester) external onlyManager {
+        for (uint256 i = 0; i < vester._name.length; i++) {
             addVester(
-                _name[i],
-                _vester[i],
-                _percentInitialAmount[i],
-                _percentAmountPerWithdraw[i],
-                _percentBonus[i],
-                _amount[i]
+                vester._name[i],
+                vester._vester[i],
+                vester._percentInitialAmount[i],
+                vester._percentAmountPerWithdraw[i],
+                vester._percentBonus[i],
+                vester._amount[i]
             );
         }
     }
@@ -150,9 +150,6 @@ contract Vesting is AccessControlUpgradeable, Manageable, Migrateable {
             _percentBonus,
             _amount
         );
-
-        console.log("itme start time", items[_name].startTime);
-        console.log("block timestamp", block.timestamp);
 
         if (items[_name].startTime < block.timestamp) {
             withdraw(_name);

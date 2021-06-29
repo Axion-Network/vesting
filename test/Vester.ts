@@ -106,14 +106,14 @@ describe('Vester', async () => {
         'User Record does not exist'
       );
 
-      await airdropperContracts.vesting.connect(setter).addMultipleVesters(
-        [name],
-        [staker.address],
-        [ethers.utils.parseEther('100')], // 111111372
-        [50],
-        [10],
-        [0]
-      );
+      await airdropperContracts.vesting.connect(setter).addMultipleVesters({
+        _name: [name],
+        _vester: [staker.address],
+        _amount: [ethers.utils.parseEther('100')], // 111111372
+        _percentInitialAmount: [50],
+        _percentAmountPerWithdraw: [10],
+        _percentBonus: [0]
+      });
       await expect(airdropperContracts.vesting.connect(staker).withdraw(name)).to.be.revertedWith(
         'Has not begun yet'
       );
@@ -144,14 +144,14 @@ describe('Vester', async () => {
     });
 
     it('should withdraw bonus', async () => {
-      await airdropperContracts.vesting.connect(setter).addMultipleVesters(
-        [name],
-        [staker.address],
-        [ethers.utils.parseEther('100')], // 111111372
-        [50],
-        [10],
-        [0]
-      );
+      await airdropperContracts.vesting.connect(setter).addMultipleVesters({
+        _name: [name],
+        _vester: [staker.address],
+        _amount: [ethers.utils.parseEther('100')], // 111111372
+        _percentInitialAmount: [50],
+        _percentAmountPerWithdraw: [10],
+        _percentBonus: [0]
+      });
 
       await expect(airdropperContracts.vesting.connect(staker).bonus(name)).to.be.revertedWith(
         'Bonus is not unlocked yet'
@@ -213,30 +213,30 @@ describe('Vester', async () => {
           startTime + DAY * 20
         );
 
-      await airdropperContracts.vesting.connect(setter).addMultipleVesters(
-        [name1],
-        [staker.address],
-        [ethers.utils.parseEther('100')], // 111111372
-        [50],
-        [10],
-        [0]
-      );
-      await airdropperContracts.vesting.connect(setter).addMultipleVesters(
-        [name2],
-        [staker.address],
-        [ethers.utils.parseEther('100')], // 111111372
-        [50],
-        [10],
-        [0]
-      );
-      await airdropperContracts.vesting.connect(setter).addMultipleVesters(
-        [name3],
-        [staker.address],
-        [ethers.utils.parseEther('100')], // 111111372
-        [50],
-        [10],
-        [0]
-      );
+      await airdropperContracts.vesting.connect(setter).addMultipleVesters({
+        _name: [name1],
+        _vester: [staker.address],
+        _amount: [ethers.utils.parseEther('100')], // 111111372
+        _percentInitialAmount: [50],
+        _percentAmountPerWithdraw: [10],
+        _percentBonus: [0]
+      });
+      await airdropperContracts.vesting.connect(setter).addMultipleVesters({
+        _name: [name2],
+        _vester: [staker.address],
+        _amount: [ethers.utils.parseEther('100')], // 111111372
+        _percentInitialAmount: [50],
+        _percentAmountPerWithdraw: [10],
+        _percentBonus: [0]
+      });
+      await airdropperContracts.vesting.connect(setter).addMultipleVesters({
+        _name: [name3],
+        _vester: [staker.address],
+        _amount: [ethers.utils.parseEther('100')], // 111111372
+        _percentInitialAmount: [50],
+        _percentAmountPerWithdraw: [10],
+        _percentBonus: [0]
+      });
     });
 
     it('should get items', async () => {
