@@ -162,9 +162,7 @@ contract Vesting is AccessControlUpgradeable, Manageable, Migrateable {
         require(userRecord.amount != 0, 'VESTING: User Record does not exist');
 
         // Initial withdraw */
-        console.log('here1');
         if (userRecord.withdrawals == 0) {
-            console.log('here2');
             userRecord.withdrawals++;
             // Ensure initial withdraw is allowed */
             // console.log('Start time %s', record.startTime);
