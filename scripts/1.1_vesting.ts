@@ -4,9 +4,8 @@ dotenv.config();
 import { network } from 'hardhat';
 import { TEST_NETWORKS } from '../constants/common';
 import { getVestingContracts } from './utils/get_vesting_deployed_contracts';
-import { getDeployedContractsV1 } from './utils/get_v1_deployed_contracts';
 import { ethers } from 'ethers';
-import { DAY } from '../test/utils/constants';
+import { DAY, ZERO_ADDRESS } from '../test/utils/constants';
 const ADDRESSES = require('../deployed-addresses/vesting.json');
 
 // FOREIGN SWAP
@@ -37,41 +36,7 @@ const main = async () => {
       }
     });
 
-    const v1Contracts = await getDeployedContractsV1(networkName);
     const { vesting } = await getVestingContracts(networkName);
-    /** Add amount to fill by */
-    const signer = await vesting.setSigner(process.env.DEPLOYER_ADDRESS!);
-    await signer.wait();
-
-    const approve = await v1Contracts.hex4TokenV1?.approve(
-      vesting.address,
-      ethers.utils.parseEther('99999999')
-    );
-    await approve?.wait();
-
-    const testStaker = '0x98C8088802EE7ED7459a59A1090CB6Fc14FDe9b9';
-    const vestName = 'Vabble Test';
-    const startTime = Math.ceil(new Date().getTime() / 1000);
-
-    const addItem = await vesting.addItem(
-      v1Contracts.hex4TokenV1?.address!,
-      vestName,
-      '933750000000000000000000',
-      '1624482000',
-      '4320',
-      '1728',
-      '1624489200'
-    );
-    await addItem.wait();
-    // const addVestor = await vesting.addVester(
-    //   vestName,
-    //   testStaker,
-    //   15,
-    //   17,
-    //   20,
-    //   ethers.utils.parseEther('100')
-    // );
-    // await addVestor.wait();
 
     console.log(
       `============================ ${SCRIPT_NAME}: DONE ===============================`

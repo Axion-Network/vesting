@@ -64,7 +64,8 @@ describe('Vester', async () => {
           startTime + DAY,
           0,
           DAY,
-          startTime + DAY * 20
+          startTime + DAY * 20,
+          testSigner
         );
 
       const item = await airdropperContracts.vesting.items(name);
@@ -94,7 +95,8 @@ describe('Vester', async () => {
           startTime + DAY,
           DAY,
           DAY,
-          startTime + DAY * 20
+          startTime + DAY * 20,
+          testSigner
         );
     });
 
@@ -184,7 +186,8 @@ describe('Vester', async () => {
           startTime + DAY,
           DAY,
           DAY,
-          startTime + DAY * 20
+          startTime + DAY * 20,
+          testSigner
         );
 
       await airdropperContracts.vesting
@@ -196,7 +199,8 @@ describe('Vester', async () => {
           startTime + DAY,
           DAY,
           DAY,
-          startTime + DAY * 20
+          startTime + DAY * 20,
+          testSigner
         );
       await airdropperContracts.vesting
         .connect(setter)
@@ -207,7 +211,8 @@ describe('Vester', async () => {
           startTime + DAY,
           DAY,
           DAY,
-          startTime + DAY * 20
+          startTime + DAY * 20,
+          testSigner
         );
 
       await airdropperContracts.vesting.connect(setter).addMultipleVesters({
@@ -272,7 +277,8 @@ describe('Vester', async () => {
           startTime + DAY,
           DAY,
           DAY,
-          startTime + DAY * 20
+          startTime + DAY * 20,
+          testSigner
         );
     });
 
@@ -284,7 +290,6 @@ describe('Vester', async () => {
         [name, '101', '17', '20', ethers.utils.parseEther('100'), staker.address]
       );
 
-      await airdropperContracts.vesting.setSigner(testSigner);
       await TestUtil.increaseTime(DAY);
       await expect(
         airdropperContracts.vesting
@@ -308,7 +313,6 @@ describe('Vester', async () => {
         [name, '15', '17', '20', ethers.utils.parseEther('100'), staker.address]
       );
 
-      await airdropperContracts.vesting.setSigner(testSigner);
       await airdropperContracts.vesting
         .connect(staker)
         .addVesterCryptography(
@@ -352,8 +356,6 @@ describe('Vester', async () => {
     });
 
     it('should withdraw on sign if start time has passed', async () => {
-      await airdropperContracts.vesting.setSigner(testSigner);
-
       const testSignatureWrong = sign(
         testSigner,
         testSignerPriv,
@@ -415,7 +417,8 @@ describe('Vester', async () => {
           startTime + DAY,
           DAY,
           DAY,
-          startTime + DAY * 20
+          startTime + DAY * 20,
+          testSigner
         );
 
       await expect(
@@ -428,7 +431,8 @@ describe('Vester', async () => {
             startTime + DAY,
             DAY,
             DAY,
-            startTime + DAY * 20
+            startTime + DAY * 20,
+            testSigner
           )
       ).to.be.revertedWith('Item already exists');
     });
@@ -436,7 +440,6 @@ describe('Vester', async () => {
     it('should not create addVester for item that DNE', async () => {
       const name = 'test-name';
 
-      await airdropperContracts.vesting.setSigner(testSigner);
       await expect(
         airdropperContracts.vesting.connect(setter).addMultipleVesters({
           _name: [name],
@@ -458,7 +461,6 @@ describe('Vester', async () => {
         [name, '15', '17', '20', ethers.utils.parseEther('100'), staker.address]
       );
 
-      await airdropperContracts.vesting.setSigner(testSigner);
       await expect(
         airdropperContracts.vesting
           .connect(staker)
@@ -470,7 +472,7 @@ describe('Vester', async () => {
             '20',
             ethers.utils.parseEther('100')
           )
-      ).to.be.revertedWith('Item does not exist');
+      ).to.be.revertedWith('Record not found');
     });
 
     it('should not try to create a second record', async () => {
@@ -490,7 +492,8 @@ describe('Vester', async () => {
           startTime + DAY,
           DAY,
           DAY,
-          startTime + DAY * 20
+          startTime + DAY * 20,
+          testSigner
         );
 
       const testSignature = sign(
@@ -500,7 +503,6 @@ describe('Vester', async () => {
         [name, '15', '17', '20', ethers.utils.parseEther('100'), staker.address]
       );
 
-      await airdropperContracts.vesting.setSigner(testSigner);
       await airdropperContracts.vesting
         .connect(staker)
         .addVesterCryptography(
@@ -523,7 +525,51 @@ describe('Vester', async () => {
             '20',
             ethers.utils.parseEther('100')
           )
-      ).to.be.revertedWith('Record already not exist');
+      ).to.be.revertedWith('Record already exists');
+    });
+
+    it.only('should allow 100 initial percent', async () => {
+      const name = 'test-name';
+      const startTime = Math.ceil(new Date().getTime() / 1000) - DAY;
+
+      await utilityContracts.swaptoken
+        .connect(setter)
+        .approve(airdropperContracts.vesting.address, ethers.utils.parseEther('100000'));
+
+      await airdropperContracts.vesting
+        .connect(setter)
+        .addItem(
+          utilityContracts.swaptoken.address,
+          name,
+          ethers.utils.parseEther('5000'),
+          startTime,
+          DAY,
+          DAY,
+          startTime + DAY * 20,
+          testSigner
+        );
+
+      const testSignature = sign(
+        testSigner,
+        testSignerPriv,
+        ['string', 'uint8', 'uint8', 'uint8', 'uint104', 'address'],
+        [name, '100', '0', '20', ethers.utils.parseEther('100'), staker.address]
+      );
+
+      await airdropperContracts.vesting
+        .connect(staker)
+        .addVesterCryptography(
+          testSignature,
+          name,
+          '100',
+          '0',
+          '20',
+          ethers.utils.parseEther('100')
+        );
+
+      await expect(airdropperContracts.vesting.connect(staker).withdraw(name)).to.be.revertedWith(
+        'No withdrawals to pay at this time'
+      );
     });
   });
 });

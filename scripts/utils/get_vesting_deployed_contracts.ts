@@ -16,6 +16,16 @@ export async function getVestingContracts(network: string) {
 
   const vesting = await ContractFactoryUtility.getVestingAt(VESTING);
 
+  const SWAP_TOKEN_ADDRESS = process.env.SWAP_TOKEN_ADDRESS;
+
+  if (SWAP_TOKEN_ADDRESS) {
+    const token = await ContractFactoryUtility.getTERC20At(SWAP_TOKEN_ADDRESS);
+    return {
+      vesting,
+      token,
+    };
+  }
+
   return {
     vesting,
   };

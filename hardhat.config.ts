@@ -19,13 +19,10 @@ task('accounts', 'Prints the list of accounts', async (args, hre) => {
   }
 });
 
-const {
-  ETHERSCAN_API_KEY,
-  INFURA_URL,
-  DEPLOYER_SECRET,
-  DEPLOY_GAS_LIMIT,
-  DEPLOY_GAS_PRICE,
-} = process.env;
+const { DEPLOYER_SECRET, DEPLOY_GAS_LIMIT, DEPLOY_GAS_PRICE } = process.env;
+
+const INFURA_URL = 'https://mainnet.infura.io/v3/a4d00fd3d7ff47e4bd590b9c39ad1409';
+const ETHERSCAN_API_KEY = '89R34PEUMA4CZDH2FMP8YM9R8GT9SVNI6P';
 
 const getNetworkConfig = (chainId: number) => {
   if (!INFURA_URL || !DEPLOYER_SECRET || !DEPLOY_GAS_LIMIT || !DEPLOY_GAS_PRICE) {

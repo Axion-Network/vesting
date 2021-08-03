@@ -8,8 +8,14 @@ import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import './abstracts/Manageable.sol';
 import './abstracts/Migrateable.sol';
 
+import 'hardhat/console.sol';
+
 contract Vesting is AccessControlUpgradeable, Manageable, Migrateable {
     event ItemCreated(address indexed token, uint256 amount);
+    event BonusWithdrawn(address indexed vester, string name, uint256 amount);
+    event VesterCreated(address indexed vester, string name, uint256 amount);
+    event InitialWithdrawn(address indexed vester, string name, uint256 amount);
+    event UnlockWithdrawn(address indexed vester, string name, uint256 amount, uint256 count);
 
     struct AddMultipleVesters {
         string[] _name;
@@ -21,7 +27,7 @@ contract Vesting is AccessControlUpgradeable, Manageable, Migrateable {
     }
 
     struct Vested {
-        // 1 words?
+        // 1 words
         uint104 amount;
         uint104 totalWithdrawn;
         uint8 percentInitial;
@@ -40,14 +46,13 @@ contract Vesting is AccessControlUpgradeable, Manageable, Migrateable {
         uint256 cliffTime;
         uint256 timeBetweenUnlocks;
         uint256 bonusUnlockTime;
+        address signer;
     }
 
     struct VestedItem {
         Vested record;
         Item item;
     }
-
-    address internal signer;
 
     mapping(address => mapping(string => Vested)) public records;
     mapping(address => string[]) userVests;
@@ -61,7 +66,8 @@ contract Vesting is AccessControlUpgradeable, Manageable, Migrateable {
         uint256 _startTime,
         uint256 _cliffTime,
         uint256 _timeBetweenUnlocks,
-        uint256 _bonusUnlockTime
+        uint256 _bonusUnlockTime,
+        address _signer
     ) external onlyManager {
         require(items[_name].amount == 0, 'VESTING: Item already exists');
 
@@ -75,10 +81,21 @@ contract Vesting is AccessControlUpgradeable, Manageable, Migrateable {
             startTime: _startTime,
             cliffTime: _cliffTime,
             timeBetweenUnlocks: _timeBetweenUnlocks,
-            bonusUnlockTime: _bonusUnlockTime
+            bonusUnlockTime: _bonusUnlockTime,
+            signer: _signer
         });
 
         emit ItemCreated(_token, _amount);
+    }
+
+    function addTokenToItem(
+        string memory _name,
+        address _token,
+        uint256 _amount
+    ) external onlyManager {
+        require(items[_name].amount != 0, 'VESTING: Item does not exist');
+        TransferHelper.safeTransferFrom(address(_token), msg.sender, address(this), _amount);
+        items[_name].amount += _amount;
     }
 
     function addVester(
@@ -90,7 +107,7 @@ contract Vesting is AccessControlUpgradeable, Manageable, Migrateable {
         uint104 _amount
     ) internal {
         // ensure that the record does not already exist for vester && ensure the item exist
-        require(records[_vester][_name].amount == 0, 'VESTING: Record already not exist');
+        require(records[_vester][_name].amount == 0, 'VESTING: Record already exists');
         require(items[_name].amount != 0, 'VESTING: Item does not exist');
 
         userVests[_vester].push(_name);
@@ -104,6 +121,8 @@ contract Vesting is AccessControlUpgradeable, Manageable, Migrateable {
             status: 0,
             bonusWithdrawn: false
         });
+
+        emit VesterCreated(_vester, _name, _amount);
     }
 
     function addMultipleVesters(AddMultipleVesters calldata vester) external onlyManager {
@@ -138,7 +157,7 @@ contract Vesting is AccessControlUpgradeable, Manageable, Migrateable {
                     msg.sender
                 )
             );
-        bool recovered = ECDSAUpgradeable.recover(messageHash, signature) == signer;
+        bool recovered = ECDSAUpgradeable.recover(messageHash, signature) == items[_name].signer;
 
         require(recovered == true, 'VESTING: Record not found');
 
@@ -176,12 +195,14 @@ contract Vesting is AccessControlUpgradeable, Manageable, Migrateable {
             userRecord.totalWithdrawn += uint104(amountToWithdraw);
             // Ensure our managers aren't allowing users to get more then they should */
             require(
-                userRecord.totalWithdrawn < userRecord.amount,
+                userRecord.totalWithdrawn <= userRecord.amount,
                 'VESTING: Exceeds allowed amount'
             );
 
             // Finally transfer and call it a day */
             IERC20(record.token).transfer(msg.sender, amountToWithdraw);
+
+            emit InitialWithdrawn(msg.sender, name, amountToWithdraw);
         } else {
             // Ensure time started */
 
@@ -192,7 +213,9 @@ contract Vesting is AccessControlUpgradeable, Manageable, Migrateable {
             );
 
             uint256 maxNumberOfWithdrawals =
-                ((100 - userRecord.percentInitial) / userRecord.percentAmountPerWithdraw) + 1; //example for 15% initial and 17% for 5 months, the max number will end up being 6
+                userRecord.percentAmountPerWithdraw == 0
+                    ? 1
+                    : ((100 - userRecord.percentInitial) / userRecord.percentAmountPerWithdraw) + 1; //example for 15% initial and 17% for 5 months, the max number will end up being 6
 
             // Get number of allowed withdrawals by doing some date magic */
             uint256 numberOfAllowedWithdrawals =
@@ -218,6 +241,8 @@ contract Vesting is AccessControlUpgradeable, Manageable, Migrateable {
 
             // Finally transfer and call it a day */
             IERC20(record.token).transfer(msg.sender, amountToWithdraw);
+
+            emit UnlockWithdrawn(msg.sender, name, amountToWithdraw, userRecord.withdrawals);
         }
     }
 
@@ -233,6 +258,12 @@ contract Vesting is AccessControlUpgradeable, Manageable, Migrateable {
         // Withdraw bonus
         IERC20(record.token).transfer(
             msg.sender,
+            (uint256(userRecord.percentBonus) * uint256(userRecord.amount)) / 100
+        );
+
+        emit BonusWithdrawn(
+            msg.sender,
+            name,
             (uint256(userRecord.percentBonus) * uint256(userRecord.amount)) / 100
         );
     }
@@ -304,9 +335,5 @@ contract Vesting is AccessControlUpgradeable, Manageable, Migrateable {
     function initialize(address _manager, address _migrator) external initializer {
         _setupRole(MANAGER_ROLE, _manager);
         _setupRole(MIGRATOR_ROLE, _migrator);
-    }
-
-    function setSigner(address _signer) external onlyMigrator {
-        signer = _signer;
     }
 }

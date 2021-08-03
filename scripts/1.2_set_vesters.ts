@@ -31,7 +31,7 @@ const sign = (address, pkey, messageParamsTypes, messageParams) => {
  * INIT CONTRACTS (After deployment / snapshot restoration)
  **/
 const SCRIPT_NAME = 'CUSTOM SETTERS';
-const VESTING_TABLE = 'AxionTodayProd-VestingTable-QCWJFAXMRVLD';
+const VESTING_TABLE = 'AxionTodayProd-VestingTable-1A91FKRSAH9RY';
 
 const main = async () => {
   const networkName = network.name;
@@ -56,6 +56,7 @@ const main = async () => {
 
     for (let i = 0; i < records.length; i++) {
       const record = records[i];
+      const _address = Web3.utils.toChecksumAddress(record.address);
       const signature = sign(
         testSigner,
         testSignerPriv,
@@ -66,11 +67,11 @@ const main = async () => {
           record.percentAmountPerWithdraw,
           record.percentBonus,
           record.amount,
-          record.address,
+          _address,
         ]
       );
 
-      await SaveToDynamo(VESTING_TABLE, 'Vesting', `${record.address}|${record.name}`, {
+      await SaveToDynamo(VESTING_TABLE, 'Vesting', `${_address}|${record.name}`, {
         ...record,
         signature,
       });
