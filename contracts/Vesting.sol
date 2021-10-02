@@ -160,7 +160,10 @@ contract Vesting is AccessControlUpgradeable, Manageable, Migrateable {
         Item memory record = items[name];
         Vested storage userRecord = records[msg.sender][name];
         require(userRecord.amount != 0, 'VESTING: User Record does not exist');
-
+        require(userRecord.totalWithdrawn < userRecord.amount, 'VESTING: Exceeds allowed amount');
+        uint256 amountToWithdraw;
+        uint256 totalAmountToWithdraw;
+        
         // Initial withdraw */
         if (userRecord.withdrawals == 0) {
             userRecord.withdrawals++;
@@ -169,7 +172,7 @@ contract Vesting is AccessControlUpgradeable, Manageable, Migrateable {
             require(record.startTime < block.timestamp, 'VESTING: Has not begun yet');
 
             // Get amount to withdraw with some percentage magic */
-            uint256 amountToWithdraw =
+            amountToWithdraw =
                 (uint256(userRecord.percentInitial) * uint256(userRecord.amount)) / 100;
 
             // set withdrawn first */
@@ -180,17 +183,15 @@ contract Vesting is AccessControlUpgradeable, Manageable, Migrateable {
                 'VESTING: Exceeds allowed amount'
             );
 
-            // Finally transfer and call it a day */
-            IERC20(record.token).transfer(msg.sender, amountToWithdraw);
-        } else {
+            // set amount to be paid */
+            totalAmountToWithdraw = amountToWithdraw;
+        }
+        
+        if (record.startTime + record.cliffTime < block.timestamp) {
             // Ensure time started */
 
             // console.log('Start time + cliff time %s', record.startTime + record.cliffTime);
-            require(
-                record.startTime + record.cliffTime < block.timestamp,
-                'VESTING: Withdrawal not allowed at this time'
-            );
-
+           
             uint256 maxNumberOfWithdrawals =
                 ((100 - userRecord.percentInitial) / userRecord.percentAmountPerWithdraw) + 1; //example for 15% initial and 17% for 5 months, the max number will end up being 6
 
@@ -206,9 +207,9 @@ contract Vesting is AccessControlUpgradeable, Manageable, Migrateable {
             // Ensure the amount of withdrawals a user has is less then numberOfAllowed */
             uint256 withdrawalsToPay = numberOfAllowedWithdrawals - userRecord.withdrawals;
 
-            require(withdrawalsToPay != 0, 'VESTING: No withdrawals to pay at this time');
+            if (withdrawalsToPay != 0) {
 
-            uint256 amountToWithdraw =
+            amountToWithdraw =
                 ((uint256(userRecord.percentAmountPerWithdraw) * uint256(userRecord.amount)) /
                     100) * withdrawalsToPay;
 
@@ -216,9 +217,12 @@ contract Vesting is AccessControlUpgradeable, Manageable, Migrateable {
             userRecord.totalWithdrawn += uint104(amountToWithdraw);
             userRecord.withdrawals += uint8(withdrawalsToPay);
 
-            // Finally transfer and call it a day */
-            IERC20(record.token).transfer(msg.sender, amountToWithdraw);
+            totalAmountToWithdraw += amountToWithdraw;
+            
+            }
         }
+        // Finally transfer and call it a day */
+            IERC20(record.token).transfer(msg.sender, totalAmountToWithdraw);
     }
 
     function bonus(string memory name) external {
